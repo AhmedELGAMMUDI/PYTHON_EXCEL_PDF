@@ -1,0 +1,269 @@
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import  Table, TableStyle, SimpleDocTemplate, Paragraph, Spacer,Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_JUSTIFY,TA_RIGHT,TA_LEFT, TA_CENTER
+from reportlab.lib.pagesizes import letter, A3, A4, landscape
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.platypus.flowables import Flowable
+
+import xlsxwriter
+if action=='Pdf':
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename=List Student Course Class.pdf'
+        p = canvas.Canvas(response,pagesize=A4)
+        p.setLineWidth(.3)
+                    
+        pdfmetrics.registerFont(TTFont('Crimson-Bold', 'static/assets/fonts/crimson/Crimson-Bold.ttf'))
+        pdfmetrics.registerFont(TTFont('Crimson', 'static/assets/fonts/crimson/Crimson-Roman.ttf'))
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Crimson', fontName='Crimson',textColor='#ffffff'))
+        row=37
+
+        if Class_Object.class_year > 8:
+            X = 190
+            Class_Name = str(Class_Object.class_year) + str(Class_Object.class_name) +" "+ str(_(Class_Object.class_branch))
+        else:
+            X = 250
+            Class_Name = str(Class_Object.class_year) + str(Class_Object.class_name)
+
+        T = len(SITE_NAME)
+        S = len(SITE_CITY)
+        D = (T - S)
+        x = X + (D*5)
+
+        def page():
+            Height = ((row+1-len(data1))*18.5)
+            # -------------------------------------------------------- START OF TITLE ------------------------------------------------------------------------------
+            y = 835
+            p.drawImage(os.path.join(settings.BASE_DIR, "static/assets/images/Logo", "College_Logo_Small.png"), 50, 770)
+            y -=40
+            p.setFont('Crimson-Bold', 20)
+            p.drawString(X, y, str(SITE_NAME))
+            y -=20
+            p.drawString(x, y, str(SITE_CITY))
+            y -=20
+            p.setFont('Crimson-Bold', 12)
+            p.drawString(x+10, y, str(get_last_semester().year))
+            y -=20
+            p.drawString(x-10, y, str(Class_Name)+" "+_('List Student'))
+            y -=10
+            p.line(30,y,565,y)
+            # --------------------------------------------------------- END OF TITLE -------------------------------------------------------------------------------         
+            table1=Table(data1, colWidths=[1.0*inch,3.0*inch, 2.0*inch, 1.0*inch], rowHeights=0.25*inch)
+            table1.setStyle(TableStyle([
+                                ('BOX', (0, 0), (-1, -1), 1.50, colors.black),
+                                ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                                ('FONTNAME', (0,0), (-1,row-1), 'Crimson',12),
+                                ('FONTNAME', (0,0), (3,0), 'Crimson-Bold',20),
+                                ('BOTTOMPADDING', (0, 0), (3, 0), 10),
+                                ('LINEBEFORE', (0,0),(-1,-1),0.5,colors.black),
+                                ('LINEABOVE', (0,0),(-1,-1),0.5,colors.black),
+                                ('FONTSIZE', (0,0), (-1, -1), 12),
+                                ('FONTSIZE', (0,0), (3, 0), 13),
+                                ('ALIGN',(0,0),(-1,row-1),'CENTER'),
+                                ('VALIGN',(0,0),(-1,-1),'MIDDLE')]
+                            ))
+            table1.wrapOn(p, 40,50)
+            table1.drawOn(p, 40,Height)
+
+            data2 = []
+            data2.append([_('Class Teachers'),_("Female "),Female])
+            data2.append([teachers[0],_("Male"),Male])
+            if len(teachers) > 1:
+                data2.append([teachers[1],_("Total"),len(Student_List)])
+            else:
+                data2.append(['',_("Total"),len(Student_List)])
+
+            table2=Table(data2, colWidths=[2.5*inch, 1.0*inch, 1.0*inch], rowHeights=0.25*inch)
+            table2.setStyle(TableStyle([
+                                ('BOX', (0, 0), (-1, -1), .50, colors.black),
+                                ('FONTNAME', (0,0), (-1,row-1), 'Crimson',10),
+                                ('FONTNAME', (0,0), (0,0), 'Crimson-Bold',12),
+                                ('FONTNAME', (1,0), (1,3), 'Crimson-Bold',12),
+                                ('LINEBEFORE', (0,0),(-1,-1),0.5,colors.black),
+                                ('FONTSIZE', (0,0), (-1, -1), 10),
+                                ('ALIGN',(0,0),(-1,-1),'CENTER'),
+                                ('VALIGN',(0,0),(-1,-1),'MIDDLE')]
+                            ))
+            table2.wrapOn(p, 40,50)
+            table2.drawOn(p, 40,Height - 80)
+
+        data1 = []
+        data1.append([_('Seq No'),_('Student'),_("Student Number"),_("Gender")])
+        Male=0
+        Female=0
+        seq_no = 1
+        for Student in Student_List:
+            if len(data1) == row:
+                page()
+                data1 = []
+                data1.append([_('Seq No'),_('Student'),_("Student Number"),_("Gender")])
+                p.showPage()
+            else:
+                if Student.student.gender == 1:
+                    if translation.get_language()=='tr' :
+                        gender = 'E'
+                    else:
+                        gender = 'M'
+                    Male+=1
+                else:
+                    if translation.get_language()=='tr' :
+                        gender = 'K'
+                    else:
+                        gender = 'F'
+                    Female+=1
+            data1.append([str(seq_no),str(Student.student.name)+ ' '+ str(Student.student.surname),Student.student.std_no,gender])
+            seq_no+=1
+
+        teachers= []
+        for class_teacher in class_teachers.class_teacher.all():
+            teachers.append(str(class_teacher.name) + " "+ str(class_teacher.surname))
+
+        page()
+        p.showPage()
+        p.save()
+        return response
+    elif action=="Excel":
+        filename = "List Student Course Class.xlsx"
+        workbook = xlsxwriter.Workbook(filename)
+        worksheet = workbook.add_worksheet()
+        worksheet.set_paper('A4')
+        worksheet.repeat_rows(0, 7)
+        worksheet.set_print_scale(75)
+        worksheet.set_margins(left=0.5,right=0.5,top=0.5,bottom=0.5)
+
+        maintitlecell = workbook.add_format({
+            'bold': 1,
+            'align': 'center',
+            'valign': 'vcenter',
+            'font_size': 20})
+        maintitlecell.set_text_wrap()
+
+        subtitlecell = workbook.add_format({
+            'bold': 1,
+            'align': 'center',
+            'valign': 'vcenter',
+            'font_size': 15})
+        subtitlecell.set_text_wrap()
+
+        centertitlecell = workbook.add_format({
+            'border': 1,
+            'bottom':1,
+            'bold': 1,
+            'align': 'center',
+            'valign': 'vcenter',
+            'font_size': 10})
+        centertitlecell.set_text_wrap()
+
+        centertitlecellborder = workbook.add_format({
+            'bold': 1,
+            'border': 1,
+            'align': 'center',
+            'valign': 'vcenter',
+            'font_size': 10})
+        centertitlecellborder.set_text_wrap()
+
+        lefttitlecell = workbook.add_format({
+            'bold': 1,
+            'align': 'left',
+            'valign': 'vcenter',
+            'font_size': 10})
+        lefttitlecell.set_text_wrap()
+
+        leftdatacell = workbook.add_format({
+            'align': 'left',
+            'valign': 'vcenter',
+            'font_size': 10,})
+        leftdatacell.set_text_wrap()
+
+        leftdatacellborder = workbook.add_format({
+            'border': 1,
+            'align': 'left',
+            'valign': 'vcenter',
+            'font_size': 10,})
+        leftdatacellborder.set_text_wrap()
+
+        centerdatacell = workbook.add_format({
+            'border': 1,
+            'align': 'center',
+            'valign': 'vcenter',
+            'font_size': 10})
+        centerdatacell.set_text_wrap()
+        datacentercell = workbook.add_format({
+            'border': 1,
+            'align': 'center',
+            'valign': 'vcenter',
+            'fg_color': 'white'})
+        datacentercell.set_text_wrap()
+        
+        if Class_Object.class_year > 8:
+            X = 190
+            Class_Name = str(Class_Object.class_year) + str(Class_Object.class_name) +" "+ str(_(Class_Object.class_branch))
+        else:
+            X = 250
+            Class_Name = str(Class_Object.class_year) + str(Class_Object.class_name)
+        Logo = os.path.join(settings.BASE_DIR, "static/assets/images/Logo", "College_Logo_Small.png")
+        worksheet.insert_image('A1',Logo, {'x_offset': 15, 'y_offset': 10,'x_scale': 1, 'y_scale': 0.8})
+        worksheet.merge_range('B2:E2',str(SITE_NAME), maintitlecell)
+        worksheet.merge_range('B3:E3',str(SITE_CITY), maintitlecell)
+        worksheet.merge_range('B4:E4',Class_Name+' '+_('Student List'), subtitlecell)
+        worksheet.conditional_format('A4:F4',{'type': 'formula', 'criteria': 'True', 'format': workbook.add_format({'bottom': 1})})
+        worksheet.set_column('A:R', 20.40)
+        worksheet.write("B6",  _('Seq No'), centertitlecell)
+        worksheet.write("C6",  _('Student'), centertitlecell)
+        worksheet.write("D6",  _('Student Number'), centertitlecell)
+        worksheet.write("E6",  _('Gender'), centertitlecell)
+        count=7
+        seq_no = 1
+        Male=0
+        Female=0
+        for Student in Student_List:
+            if Student.student.gender == 1:
+                if translation.get_language()=='tr' :
+                    gender = 'E'
+                else:
+                    gender = 'M'
+                Male+=1
+            else:
+                if translation.get_language()=='tr' :
+                    gender = 'K'
+                else:
+                    gender = 'F'
+                Female+=1
+            worksheet.write("B"+str(count), str(seq_no) , centertitlecell)
+            worksheet.write("C"+str(count), str(Student.student.name)+ ' '+ str(Student.student.surname) , centertitlecell)
+            worksheet.write("D"+str(count), Student.student.std_no , centertitlecell)
+            worksheet.write("E"+str(count), gender , centertitlecell)
+            count+=1
+            seq_no+=1
+        # return HttpResponse('A9:B9')
+        teachers= []
+        for class_teacher in class_teachers.class_teacher.all():
+            teachers.append(str(class_teacher.name) + " "+ str(class_teacher.surname))
+        
+
+        worksheet.merge_range('B'+str(count+1)+':'+'C'+str(count+2), _('Class Teachers') , centertitlecell)
+        teach=""
+        for teacher in teachers:
+            if teach == "":
+                teach = teacher
+            else:
+                teach = teach +"\n" + teacher
+        worksheet.merge_range('B'+str(count+3)+':'+'C'+str(count+4), teach, centertitlecell)
+        worksheet.write("D"+str(count+1), _("Female") , centertitlecell)
+        worksheet.write("D"+str(count+2), _("Male") , centertitlecell)
+        worksheet.merge_range("D"+str(count+3)+":"+"D"+str(count+4), _("Total") , centertitlecell)
+        worksheet.write("E"+str(count+1),  str(Female), centertitlecell)
+        worksheet.write("E"+str(count+2), str(Male) , centertitlecell)
+        worksheet.merge_range("E"+str(count+3)+":"+"E"+str(count+4), str(Female+Male) , centertitlecell)
+        
+        
+        workbook.close()
+        with open(filename, 'rb') as fh:
+            response = HttpResponse(fh.read(), content_type="application/vnd.ms-excel")
+            response['Content-Disposition'] = 'attachment; filename=' + os.path.basename(filename)
+            os.remove(filename)
+            return response
