@@ -126,7 +126,7 @@ if action=='Pdf':
         p.showPage()
         p.save()
         return response
-    elif action=="Excel":
+elif action=="Excel":
         filename = "List Student Course Class.xlsx"
         workbook = xlsxwriter.Workbook(filename)
         worksheet = workbook.add_worksheet()
